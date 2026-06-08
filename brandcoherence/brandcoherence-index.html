@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brand Coherence Calculator | Signal OS</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0800; }
+    input[type=range] { -webkit-appearance: none; appearance: none; height: 2px; outline: none; cursor: pointer; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: #b8860b; border-radius: 50%; cursor: pointer; }
+    input[type=range]::-moz-range-thumb { width: 14px; height: 14px; background: #b8860b; border-radius: 50%; cursor: pointer; border: none; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.4s ease; }
+    .prompt-box { cursor: pointer; transition: border-color 0.2s ease, background 0.2s ease; }
+    .prompt-box:hover { border-color: rgba(180,120,20,0.6) !important; background: rgba(180,120,20,0.08) !important; }
+    .copy-btn { cursor: pointer; transition: all 0.2s ease; }
+    .copy-btn:hover { background: #b8860b !important; color: #0a0800 !important; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const questions = [
+      {
+        id: "MC",
+        label: "Message Consistency",
+        description: "Take your last 30 posts. Would someone reading them sequentially understand what your brand fundamentally stands for?",
+        low: "Scattered, contradictory messaging",
+        high: "Every post reinforces the same core promise",
+      },
+      {
+        id: "AA",
+        label: "Audience Alignment",
+        description: "Does your audience perceive you the way you intend? Does their language about you mirror your brand promise?",
+        low: "Significant gap between intention and perception",
+        high: "Audience language mirrors your brand promise exactly",
+      },
+      {
+        id: "PV",
+        label: "Production Volume",
+        description: "Is your content volume calibrated to your brand positioning, or are you producing more than your promise can support?",
+        low: "Volume far exceeds what your positioning can support",
+        high: "Volume is precisely calibrated to your brand promise",
+      },
+      {
+        id: "RD",
+        label: "Restraint Discipline",
+        description: "Can you say no to content that tests well but dilutes your brand? How often does your brand take precedence?",
+        low: "Yes to everything — no editorial discipline",
+        high: "Consistent rejection of off-brand content regardless of performance",
+      },
+    ];
+
+    const decisionTree = (scores) => {
+      const { MC, AA, PV, RD } = scores;
+      const results = [];
+      if (MC < 3) results.push({ step: "Message Consistency", status: "fail", action: "STOP producing. Audit your last 30 posts before creating more. Identify what contradicts your core promise and understand why it was approved." });
+      if (AA < 3) results.push({ step: "Audience Alignment", status: "fail", action: "PAUSE campaigns. Run audience listening — customer interviews, social listening, sentiment analysis — before your next push. The gap between intention and perception is where coherence collapses." });
+      if (PV < 3) results.push({ step: "Production Volume", status: "fail", action: "RECALIBRATE. Your production volume is outpacing your positioning. A luxury brand producing at scale contradicts exclusivity. Align method to promise before scaling further." });
+      if (RD < 3) results.push({ step: "Restraint Discipline", status: "fail", action: "BUILD THE FILTER. Document your brand promise explicitly. Create a one-page filter every piece of content must pass before approval. Make restraint a process, not a judgment call." });
+      if (results.length === 0) results.push({ step: "All Systems", status: "pass", action: "Your coherence is intact. Protect it. Run this diagnostic every 30 days. The brands that maintain coherence aren't the ones with the best content — they're the ones who keep asking the same question consistently." });
+      return results;
+    };
+
+    const getCoherenceScore = (scores) => {
+      const { MC, AA, PV, RD } = scores;
+      if (PV === 0 || RD === 0) return 0;
+      return ((MC * AA) / (PV / RD)).toFixed(2);
+    };
+
+    const getScoreLabel = (score) => {
+      if (score >= 15) return { label: "Strong", color: "#4ade80" };
+      if (score >= 8) return { label: "At Risk", color: "#fbbf24" };
+      return { label: "Eroding", color: "#f87171" };
+    };
+
+    const getWeakestKPI = (scores) => {
+      const entries = Object.entries(scores);
+      return entries.reduce((a, b) => a[1] < b[1] ? a : b)[0];
+    };
+
+    const getStrongestKPI = (scores) => {
+      const entries = Object.entries(scores);
+      return entries.reduce((a, b) => a[1] > b[1] ? a : b)[0];
+    };
+
+    const kpiNames = {
+      MC: "Message Consistency",
+      AA: "Audience Alignment",
+      PV: "Production Volume",
+      RD: "Restraint Discipline"
+    };
+
+    const generatePrompts = (scores, coherenceScore, scoreLabel) => {
+      const weakest = getWeakestKPI(scores);
+      const strongest = getStrongestKPI(scores);
+
+      return [
+        {
+          label: "Deep Diagnosis",
+          title: "Analyze my weakest KPI",
+          description: `Tailored for your ${kpiNames[weakest]} score of ${scores[weakest]}`,
+          prompt: `I just ran a Brand Coherence diagnostic. My overall Brand Coherence score is ${coherenceScore} (${scoreLabel.label}). My weakest KPI is ${kpiNames[weakest]} with a score of ${scores[weakest]} out of 5. My scores across all four KPIs are: Message Consistency: ${scores.MC}, Audience Alignment: ${scores.AA}, Production Volume: ${scores.PV}, Restraint Discipline: ${scores.RD}. Please give me a detailed analysis of why ${kpiNames[weakest]} is likely my weakest area, what specific behaviors or decisions typically cause this problem, and give me three concrete actions I can take this week to improve it. Be direct and specific.`
+        },
+        {
+          label: "Brand Filter",
+          title: "Build my brand content filter",
+          description: "A one-page yes/no filter for every piece of content",
+          prompt: `I need to build a brand content filter — a simple one-page set of yes/no questions that every piece of content must pass before I approve it. My Brand Coherence scores are: Message Consistency: ${scores.MC}/5, Audience Alignment: ${scores.AA}/5, Production Volume: ${scores.PV}/5, Restraint Discipline: ${scores.RD}/5. My overall score is ${coherenceScore} (${scoreLabel.label}). Based on my weakest areas, create a practical brand filter with 6-8 yes/no questions that would catch the content most likely to erode my brand coherence. Make the questions specific and actionable, not vague.`
+        },
+        {
+          label: "Risk Assessment",
+          title: "Identify my biggest coherence risks",
+          description: `Based on your ${scoreLabel.label} overall score`,
+          prompt: `My Brand Coherence score is ${coherenceScore} (${scoreLabel.label}). My strongest KPI is ${kpiNames[strongest]} at ${scores[strongest]}/5 and my weakest is ${kpiNames[weakest]} at ${scores[weakest]}/5. I work in brand, marketing, and communications. What are the three most likely ways a brand at this coherence level loses ground over the next 12 months? What early warning signs should I watch for? And what is the single most important thing I should protect right now to prevent coherence erosion? Be specific and honest.`
+        },
+        {
+          label: "Executive Case",
+          title: "Help me make the case to leadership",
+          description: "Turn your scores into a business case",
+          prompt: `I need to make the case to my leadership team that brand coherence is a revenue driver, not just a brand asset. My Brand Coherence scores are: Message Consistency: ${scores.MC}/5, Audience Alignment: ${scores.AA}/5, Production Volume: ${scores.PV}/5, Restraint Discipline: ${scores.RD}/5. Overall score: ${coherenceScore} (${scoreLabel.label}). Help me build a concise business case — no more than one page — that connects these specific KPI gaps to business outcomes like pricing power, customer retention, and competitive differentiation. Use data and examples where possible. My leadership responds to metrics and ROI, not brand theory.`
+        }
+      ];
+    };
+
+    function CopyButton({ text }) {
+      const [copied, setCopied] = useState(false);
+      return (
+        <button
+          className="copy-btn"
+          onClick={() => {
+            navigator.clipboard.writeText(text).then(() => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            });
+          }}
+          style={{
+            padding: "8px 16px",
+            background: "transparent",
+            border: "1px solid rgba(180,120,20,0.4)",
+            color: "#b8860b",
+            fontSize: "11px",
+            letterSpacing: "0.15em",
+            textTransform: "uppercase",
+            borderRadius: "2px",
+            flexShrink: 0,
+          }}
+        >
+          {copied ? "✓ Copied" : "Copy Prompt"}
+        </button>
+      );
+    }
+
+    function App() {
+      const [scores, setScores] = useState({ MC: 1, AA: 1, PV: 1, RD: 1 });
+      const [submitted, setSubmitted] = useState(false);
+      const [email, setEmail] = useState("");
+      const [emailSubmitted, setEmailSubmitted] = useState(false);
+      const [emailError, setEmailError] = useState("");
+      const [promptsOpen, setPromptsOpen] = useState(false);
+
+      const coherenceScore = getCoherenceScore(scores);
+      const scoreLabel = getScoreLabel(parseFloat(coherenceScore));
+      const treeResults = submitted ? decisionTree(scores) : [];
+      const prompts = submitted ? generatePrompts(scores, coherenceScore, scoreLabel) : [];
+
+      const handleScore = (id, value) => {
+        setScores(prev => ({ ...prev, [id]: parseInt(value) }));
+        setSubmitted(false);
+        setPromptsOpen(false);
+      };
+
+      return (
+        <div style={{ minHeight: "100vh", background: "#0a0800", color: "#f5f0e8", fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+
+          {/* Header */}
+          <div style={{ borderBottom: "1px solid rgba(180,120,20,0.3)", padding: "24px 40px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div style={{ width: "32px", height: "32px", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {[0,1,2].map(i => (
+                  <div key={i} style={{ position: "absolute", border: "1.5px solid #c0392b", borderRadius: "50%", width: `${12+i*8}px`, height: `${12+i*8}px`, opacity: 1-i*0.25 }} />
+                ))}
+                <div style={{ width: "5px", height: "5px", background: "#c0392b", borderRadius: "50%" }} />
+              </div>
+              <span style={{ fontSize: "13px", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+                signal<span style={{ color: "#c0392b", fontWeight: "bold" }}>OS</span>
+              </span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(245,240,232,0.4)" }}>Brand Coherence Tool</span>
+              <span style={{ fontSize: "9px", letterSpacing: "0.15em", textTransform: "uppercase", background: "rgba(192,57,43,0.2)", color: "#c0392b", border: "1px solid rgba(192,57,43,0.4)", padding: "2px 6px", borderRadius: "2px" }}>Beta</span>
+            </div>
+          </div>
+
+          <div style={{ maxWidth: "720px", margin: "0 auto", padding: "60px 40px 80px" }}>
+
+            {/* Title */}
+            <div style={{ marginBottom: "56px" }}>
+              <div style={{ fontSize: "11px", letterSpacing: "0.25em", textTransform: "uppercase", color: "#b8860b", marginBottom: "16px" }}>Diagnostic</div>
+              <h1 style={{ fontSize: "clamp(32px,5vw,52px)", fontWeight: "normal", lineHeight: "1.1", margin: "0 0 20px", color: "#f5f0e8" }}>
+                Brand Coherence<br />
+                <span style={{ color: "#b8860b" }}>Calculator</span>
+                <span style={{ fontSize: "14px", letterSpacing: "0.15em", textTransform: "uppercase", background: "rgba(192,57,43,0.2)", color: "#c0392b", border: "1px solid rgba(192,57,43,0.4)", padding: "3px 8px", borderRadius: "2px", marginLeft: "12px", verticalAlign: "middle" }}>Beta</span>
+              </h1>
+              <p style={{ fontSize: "16px", lineHeight: "1.7", color: "rgba(245,240,232,0.6)", margin: "0 0 12px", maxWidth: "540px" }}>
+                Brand coherence is invisible when it's working. Expensive when it's gone. Score your brand across four KPIs to find where coherence is holding — and where it's eroding.
+              </p>
+              <div style={{ fontSize: "13px", color: "rgba(245,240,232,0.35)", fontStyle: "italic" }}>BC = (MC × AA) / (PV ÷ RD)</div>
+            </div>
+
+            {/* Sliders */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "40px", marginBottom: "48px" }}>
+              {questions.map((q, idx) => (
+                <div key={q.id} style={{ borderLeft: "2px solid #b8860b", paddingLeft: "24px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                    <div>
+                      <span style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#b8860b", display: "block", marginBottom: "4px" }}>
+                        {String(idx+1).padStart(2,"0")} — {q.id}
+                      </span>
+                      <span style={{ fontSize: "18px", color: "#f5f0e8" }}>{q.label}</span>
+                    </div>
+                    <span style={{ fontSize: "28px", color: "#b8860b", minWidth: "40px", textAlign: "right" }}>{scores[q.id]}</span>
+                  </div>
+                  <p style={{ fontSize: "14px", lineHeight: "1.6", color: "rgba(245,240,232,0.5)", margin: "0 0 16px" }}>{q.description}</p>
+                  <input
+                    type="range" min="1" max="5"
+                    value={scores[q.id]}
+                    onChange={e => handleScore(q.id, e.target.value)}
+                    style={{
+                      width: "100%", height: "2px", marginBottom: "8px",
+                      background: `linear-gradient(to right, #b8860b ${(scores[q.id]-1)*25}%, rgba(245,240,232,0.15) ${(scores[q.id]-1)*25}%)`
+                    }}
+                  />
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "rgba(245,240,232,0.3)" }}>
+                    <span>1 — {q.low}</span>
+                    <span>5 — {q.high}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Button */}
+            <button
+              onClick={() => { setSubmitted(true); setPromptsOpen(false); }}
+              style={{ width: "100%", padding: "18px", background: "transparent", border: "1px solid #b8860b", color: "#b8860b", fontSize: "13px", letterSpacing: "0.2em", textTransform: "uppercase", cursor: "pointer", marginBottom: "48px" }}
+              onMouseOver={e => { e.target.style.background="#b8860b"; e.target.style.color="#0a0800"; }}
+              onMouseOut={e => { e.target.style.background="transparent"; e.target.style.color="#b8860b"; }}
+            >
+              Run Diagnostic
+            </button>
+
+            {/* Results */}
+            {submitted && (
+              <div className="fade-in">
+
+                {/* Score */}
+                <div style={{ borderTop: "1px solid rgba(180,120,20,0.3)", borderBottom: "1px solid rgba(180,120,20,0.3)", padding: "40px 0", marginBottom: "48px", textAlign: "center" }}>
+                  <div style={{ fontSize: "11px", letterSpacing: "0.25em", textTransform: "uppercase", color: "rgba(245,240,232,0.4)", marginBottom: "16px" }}>Brand Coherence Score</div>
+                  <div style={{ fontSize: "72px", fontWeight: "normal", color: scoreLabel.color, lineHeight: "1", marginBottom: "12px" }}>{coherenceScore}</div>
+                  <div style={{ fontSize: "14px", letterSpacing: "0.15em", textTransform: "uppercase", color: scoreLabel.color, marginBottom: "24px" }}>{scoreLabel.label}</div>
+                  <div style={{ fontSize: "13px", color: "rgba(245,240,232,0.4)", fontStyle: "italic" }}>
+                    BC = ({scores.MC} × {scores.AA}) / ({scores.PV} ÷ {scores.RD}) = {coherenceScore}
+                  </div>
+                </div>
+
+                {/* Decision tree */}
+                <div style={{ marginBottom: "48px" }}>
+                  <div style={{ fontSize: "11px", letterSpacing: "0.25em", textTransform: "uppercase", color: "#b8860b", marginBottom: "32px" }}>Diagnostic Results</div>
+                  {treeResults.map((result, idx) => (
+                    <div key={idx} style={{ marginBottom: "24px", paddingLeft: "24px", borderLeft: `2px solid ${result.status==="pass"?"#4ade80":"#c0392b"}` }}>
+                      <div style={{ fontSize: "12px", letterSpacing: "0.15em", textTransform: "uppercase", color: result.status==="pass"?"#4ade80":"#c0392b", marginBottom: "8px" }}>
+                        {result.status==="pass"?"✓":"✗"} {result.step}
+                      </div>
+                      <p style={{ fontSize: "15px", lineHeight: "1.7", color: "rgba(245,240,232,0.7)", margin: 0 }}>{result.action}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* AI Prompts */}
+                <div style={{ marginBottom: "48px", border: "1px solid rgba(180,120,20,0.2)", }}>
+                  <button
+                    onClick={() => setPromptsOpen(!promptsOpen)}
+                    style={{ width: "100%", padding: "24px", background: "transparent", border: "none", color: "#f5f0e8", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left" }}
+                  >
+                    <div>
+                      <div style={{ fontSize: "11px", letterSpacing: "0.25em", textTransform: "uppercase", color: "#b8860b", marginBottom: "6px" }}>Go Deeper</div>
+                      <div style={{ fontSize: "17px", fontWeight: "normal" }}>AI Prompts for Further Analysis</div>
+                      <div style={{ fontSize: "13px", color: "rgba(245,240,232,0.4)", marginTop: "4px" }}>4 prompts tailored to your scores — copy and paste into any AI tool</div>
+                    </div>
+                    <span style={{ color: "#b8860b", fontSize: "20px", marginLeft: "16px", flexShrink: 0, transform: promptsOpen ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }}>→</span>
+                  </button>
+
+                  {promptsOpen && (
+                    <div style={{ borderTop: "1px solid rgba(180,120,20,0.2)", padding: "24px", display: "flex", flexDirection: "column", gap: "20px" }}>
+                      <p style={{ fontSize: "13px", color: "rgba(245,240,232,0.4)", lineHeight: "1.6", marginBottom: "4px" }}>
+                        Copy any prompt below and paste it into ChatGPT, Claude, or your AI tool of choice for a deeper analysis of your brand coherence.
+                      </p>
+                      {prompts.map((prompt, idx) => (
+                        <div key={idx} className="prompt-box" style={{ padding: "20px", border: "1px solid rgba(180,120,20,0.2)", background: "rgba(180,120,20,0.03)" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px", gap: "12px" }}>
+                            <div>
+                              <span style={{ fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#b8860b", display: "block", marginBottom: "4px" }}>{prompt.label}</span>
+                              <span style={{ fontSize: "15px", color: "#f5f0e8" }}>{prompt.title}</span>
+                              <span style={{ fontSize: "12px", color: "rgba(245,240,232,0.4)", display: "block", marginTop: "2px" }}>{prompt.description}</span>
+                            </div>
+                            <CopyButton text={prompt.prompt} />
+                          </div>
+                          <div style={{ fontSize: "12px", lineHeight: "1.7", color: "rgba(245,240,232,0.35)", fontStyle: "italic", borderTop: "1px solid rgba(180,120,20,0.1)", paddingTop: "12px" }}>
+                            {prompt.prompt.length > 180 ? prompt.prompt.substring(0, 180) + "..." : prompt.prompt}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer quote */}
+                <div style={{ padding: "24px", background: "rgba(180,120,20,0.05)", border: "1px solid rgba(180,120,20,0.15)", fontSize: "14px", lineHeight: "1.7", color: "rgba(245,240,232,0.5)", fontStyle: "italic", marginBottom: "40px" }}>
+                  There is no perfect score. There is only appropriate coherence for your positioning.
+                  <div style={{ marginTop: "12px", fontStyle: "normal", fontSize: "12px", letterSpacing: "0.1em" }}>— Signal OS, signal-os.co</div>
+                </div>
+
+                {/* Email capture */}
+                {!emailSubmitted ? (
+                  <div style={{ borderTop: "1px solid rgba(180,120,20,0.3)", paddingTop: "40px" }}>
+                    <div style={{ fontSize: "11px", letterSpacing: "0.25em", textTransform: "uppercase", color: "#b8860b", marginBottom: "16px" }}>Subscribe</div>
+                    <h3 style={{ fontSize: "22px", fontWeight: "normal", color: "#f5f0e8", margin: "0 0 12px", lineHeight: "1.3" }}>Want the full Brand Coherence framework?</h3>
+                    <p style={{ fontSize: "14px", lineHeight: "1.7", color: "rgba(245,240,232,0.5)", margin: "0 0 24px", maxWidth: "480px" }}>
+                      Signal OS goes deeper on brand strategy, operating experience, and tools like this every two weeks. Written from inside — not outside. Free.
+                    </p>
+                    <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                      <input
+                        type="email" placeholder="your@email.com" value={email}
+                        onChange={e => { setEmail(e.target.value); setEmailError(""); }}
+                        style={{ flex: "1", minWidth: "200px", padding: "14px 16px", background: "rgba(245,240,232,0.05)", border: `1px solid ${emailError?"#c0392b":"rgba(180,120,20,0.3)"}`, color: "#f5f0e8", fontSize: "14px", fontFamily: "'Georgia',serif", outline: "none" }}
+                      />
+                      <button
+                        onClick={() => {
+                          if (!email || !email.includes("@")) { setEmailError("Please enter a valid email address."); return; }
+                          window.open(`https://signal-os.co?email=${encodeURIComponent(email)}`, "_blank");
+                          setEmailSubmitted(true);
+                        }}
+                        style={{ padding: "14px 24px", background: "#b8860b", border: "none", color: "#0a0800", fontSize: "13px", letterSpacing: "0.15em", textTransform: "uppercase", cursor: "pointer", fontFamily: "'Georgia',serif", whiteSpace: "nowrap" }}
+                      >
+                        Subscribe Free
+                      </button>
+                    </div>
+                    {emailError && <div style={{ marginTop: "8px", fontSize: "12px", color: "#c0392b" }}>{emailError}</div>}
+                    <div style={{ marginTop: "12px", fontSize: "11px", color: "rgba(245,240,232,0.25)" }}>No spam. Unsubscribe anytime. One post every two weeks.</div>
+                  </div>
+                ) : (
+                  <div style={{ borderTop: "1px solid rgba(180,120,20,0.3)", paddingTop: "40px", textAlign: "center" }}>
+                    <div style={{ fontSize: "11px", letterSpacing: "0.25em", textTransform: "uppercase", color: "#4ade80", marginBottom: "16px" }}>✓ You're in</div>
+                    <p style={{ fontSize: "16px", color: "rgba(245,240,232,0.6)", lineHeight: "1.7", margin: 0 }}>Check your inbox to confirm. First post coming soon.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
