@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tensile Line Calculator | signalOS</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0800; }
+    input[type=range] { -webkit-appearance: none; appearance: none; height: 2px; outline: none; cursor: pointer; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: #b8860b; border-radius: 50%; cursor: pointer; }
+    input[type=range]::-moz-range-thumb { width: 14px; height: 14px; background: #b8860b; border-radius: 50%; cursor: pointer; border: none; }
+    input[type=number], input[type=text], select {
+      background: rgba(245,240,232,0.05);
+      border: 1px solid rgba(180,120,20,0.3);
+      color: #f5f0e8;
+      padding: 12px 16px;
+      font-family: 'Georgia', serif;
+      font-size: 14px;
+      outline: none;
+      width: 100%;
+    }
+    input[type=number]:focus, select:focus {
+      border-color: #b8860b;
+    }
+    select option { background: #1a1200; color: #f5f0e8; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.4s ease; }
+    ::-webkit-input-placeholder { color: rgba(245,240,232,0.25); }
+    ::-moz-placeholder { color: rgba(245,240,232,0.25); }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useCallback } = React;
+
+    const INDUSTRY_CPL = {
+      "B2B Technology": { min: 80, max: 140, avg: 110 },
+      "Healthcare / Medtech": { min: 90, max: 150, avg: 120 },
+      "Financial Services": { min: 70, max: 130, avg: 100 },
+      "Media & Communications": { min: 50, max: 110, avg: 75 },
+      "Consumer Goods": { min: 25, max: 60, avg: 40 },
+      "Professional Services": { min: 80, max: 160, avg: 115 },
+      "Other": { min: 50, max: 120, avg: 85 },
+    };
+
+    const ACTIVATION_OPTIONS = [
+      { label: "In-person dinner or salon", defaultCost: 60 },
+      { label: "Workshop or roundtable", defaultCost: 150 },
+      { label: "Conference or speaking event", defaultCost: 500 },
+      { label: "Printed matter / direct mail", defaultCost: 25 },
+      { label: "Custom activation", defaultCost: 100 },
+    ];
+
+    const ROLE_RATES = {
+      "Brand Manager": 65,
+      "Creative Director": 95,
+      "VP / Senior Leader": 125,
+      "Independent Practitioner": 75,
+      "Other": 75,
+    };
+
+    const AI_PROMPTS = (data) => [
+      {
+        label: "Strategic Reallocation",
+        title: "Help me shift budget toward activation",
+        description: `Based on your ${data.status} Tensile Line status`,
+        prompt: `I just ran a Tensile Line analysis. My cost per meaningful relationship via paid media is $${data.paidCPR} versus $${data.activationCPR} via in-person activation. My Tensile Line status is: ${data.status}. My industry is ${data.industry}. Help me build a concrete plan to shift ${data.status === "CROSSED" ? "30%" : "10-15%"} of my next campaign budget toward relationship-based activation. Include how to make the case to leadership using the CPR comparison, what a realistic first activation looks like, and how to measure success in the first 90 days.`,
+      },
+      {
+        label: "Leadership Case",
+        title: "Make the case to my leadership team",
+        description: "Turn your numbers into a business case",
+        prompt: `I need to make the case to leadership that our paid media spend has crossed a threshold where relationship-based activation delivers better ROI. My numbers: Paid CPL: $${data.estimatedCPL}. Cost per meaningful relationship via paid: $${data.paidCPR}. Cost per relationship via activation: $${data.activationCPR}. Tensile Line status: ${data.status}. Help me build a one-page business case that connects these numbers to revenue outcomes. My leadership responds to metrics and ROI, not marketing theory.`,
+      },
+      {
+        label: "Activation Design",
+        title: "Design my first activation",
+        description: `For ${data.activationType}`,
+        prompt: `I want to design my first relationship-based activation as an alternative to paid lead generation. Activation type: ${data.activationType}. My industry: ${data.industry}. Budget per person: $${data.activationCostPerPerson}. Target relationships: ${data.targetRelationships}. Help me design the activation in detail — who to invite, what question to organize it around, how to structure the experience, and how to follow up in a way that builds genuine relationships rather than feeding a sales funnel.`,
+      },
+      {
+        label: "Quarterly Review",
+        title: "Build a quarterly Tensile Line review process",
+        description: "Track your threshold over time",
+        prompt: `I want to build a quarterly process to track my Tensile Line — the threshold where paid media spend becomes less efficient than relationship-based activation. My current numbers: Paid CPR $${data.paidCPR}, Activation CPR $${data.activationCPR}, Status: ${data.status}. Help me design a simple quarterly review process — what to measure, what questions to ask, and how to know when my Tensile Line has shifted enough to warrant a budget reallocation.`,
+      },
+    ];
+
+    function CopyButton({ text }) {
+      const [copied, setCopied] = useState(false);
+      return (
+        <button
+          onClick={() => { navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }); }}
+          style={{ padding: "8px 14px", background: "transparent", border: "1px solid rgba(180,120,20,0.4)", color: "#b8860b", fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", cursor: "pointer", flexShrink: 0, fontFamily: "Georgia, serif" }}
+          onMouseOver={e => { e.target.style.background="#b8860b"; e.target.style.color="#0a0800"; }}
+          onMouseOut={e => { e.target.style.background="transparent"; e.target.style.color="#b8860b"; }}
+        >{copied ? "✓ Copied" : "Copy Prompt"}</button>
+      );
+    }
+
+    function InputField({ label, sublabel, value, onChange, prefix, placeholder, type="number" }) {
+      return (
+        <div style={{ marginBottom: "20px" }}>
+          <div style={{ fontSize: "13px", color: "#f5f0e8", marginBottom: "4px" }}>{label}</div>
+          {sublabel && <div style={{ fontSize: "11px", color: "rgba(245,240,232,0.4)", marginBottom: "8px" }}>{sublabel}</div>}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {prefix && <span style={{ fontSize: "16px", color: "#b8860b", flexShrink: 0 }}>{prefix}</span>}
+            <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} min="0" style={{ flex: 1 }} />
+          </div>
+        </div>
+      );
+    }
+
+    function SelectField({ label, sublabel, value, onChange, options }) {
+      return (
+        <div style={{ marginBottom: "20px" }}>
+          <div style={{ fontSize: "13px", color: "#f5f0e8", marginBottom: "4px" }}>{label}</div>
+          {sublabel && <div style={{ fontSize: "11px", color: "rgba(245,240,232,0.4)", marginBottom: "8px" }}>{sublabel}</div>}
+          <select value={value} onChange={e => onChange(e.target.value)}>
+            <option value="">Select...</option>
+            {options.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+        </div>
+      );
+    }
+
+    function StepHeader({ number, title, active }) {
+      return (
+        <div style={{ borderLeft: `2px solid ${active ? "#b8860b" : "rgba(180,120,20,0.2)"}`, paddingLeft: "20px", marginBottom: "24px", transition: "border-color 0.3s" }}>
+          <div style={{ fontSize: "10px", letterSpacing: "0.25em", textTransform: "uppercase", color: "#b8860b", marginBottom: "4px" }}>
+            {String(number).padStart(2,"0")}
+          </div>
+          <div style={{ fontSize: "20px", color: "#f5f0e8", fontWeight: "normal" }}>{title}</div>
+        </div>
+      );
+    }
+
+    function App() {
+      const [step, setStep] = useState(1);
+      const [submitted, setSubmitted] = useState(false);
+      const [promptsOpen, setPromptsOpen] = useState(false);
+
+      // Step 1
+      const [mediaSend, setMediaSpend] = useState("");
+      const [productionCost, setProductionCost] = useState("");
+      const [teamHours, setTeamHours] = useState("");
+      const [role, setRole] = useState("");
+      const [customRate, setCustomRate] = useState("");
+      const [totalEngagements, setTotalEngagements] = useState("");
+
+      // Step 2
+      const [industry, setIndustry] = useState("");
+
+      // Step 3
+      const [relationshipPct, setRelationshipPct] = useState("");
+
+      // Step 4
+      const [activationType, setActivationType] = useState("");
+      const [activationCostPerPerson, setActivationCostPerPerson] = useState("");
+      const [targetRelationships, setTargetRelationships] = useState("");
+
+      const hourlyRate = role === "Other" ? parseFloat(customRate) || 75 : ROLE_RATES[role] || 75;
+      const totalCost = (parseFloat(mediaSend) || 0) + (parseFloat(productionCost) || 0) + ((parseFloat(teamHours) || 0) * hourlyRate);
+      const trueCPE = totalEngagements > 0 ? totalCost / parseFloat(totalEngagements) : 0;
+      const industryData = INDUSTRY_CPL[industry] || null;
+      const estimatedCPL = industryData ? industryData.avg : 0;
+      const conversionRate = parseFloat(relationshipPct) / 100 || 0;
+      const paidCPR = conversionRate > 0 ? estimatedCPL / conversionRate : 0;
+      const activationCPR = targetRelationships > 0 ? (parseFloat(activationCostPerPerson) || 0) * parseFloat(targetRelationships) / parseFloat(targetRelationships) : parseFloat(activationCostPerPerson) || 0;
+
+      const getStatus = () => {
+        if (!paidCPR || !activationCPR) return null;
+        const ratio = paidCPR / activationCPR;
+        if (ratio >= 1.2) return "CROSSED";
+        if (ratio >= 0.8) return "APPROACHING";
+        return "BELOW";
+      };
+
+      const status = getStatus();
+
+      const statusConfig = {
+        CROSSED: { color: "#f87171", label: "Crossed", description: "Your paid CPR exceeds your activation CPR. The material is under more stress than it can hold." },
+        APPROACHING: { color: "#fbbf24", label: "Approaching", description: "You're within 20% of your Tensile Line. Start planning your activation strategy now." },
+        BELOW: { color: "#4ade80", label: "Below", description: "Paid is still more efficient. Revisit this calculation quarterly or when your CPL increases." },
+      };
+
+      const recommendation = {
+        CROSSED: `Redirect a portion of your next campaign budget toward ${activationType || "in-person activation"}. Start with one event, one city, twelve people. Prove the model before scaling.`,
+        APPROACHING: `Run one activation experiment alongside your next paid campaign. Compare the CPR in 90 days. You're close to the line.`,
+        BELOW: `Your paid strategy is still efficient. Track this quarterly. Lines move — especially as platform CPLs continue rising.`,
+      };
+
+      const promptData = { status, industry, estimatedCPL: estimatedCPL.toFixed(0), paidCPR: paidCPR.toFixed(0), activationCPR: activationCPR.toFixed(0), activationType, activationCostPerPerson, targetRelationships };
+      const prompts = submitted ? AI_PROMPTS(promptData) : [];
+
+      const canProceed = {
+        1: mediaSend && totalEngagements,
+        2: industry,
+        3: relationshipPct,
+        4: activationType && activationCostPerPerson && targetRelationships,
+      };
+
+      return (
+        <div style={{ minHeight: "100vh", background: "#0a0800", color: "#f5f0e8", fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+
+          {/* Header */}
+          <div style={{ borderBottom: "1px solid rgba(180,120,20,0.3)", padding: "20px 40px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div style={{ width: "28px", height: "28px", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {[0,1,2].map(i => <div key={i} style={{ position: "absolute", border: "1.5px solid #c0392b", borderRadius: "50%", width: `${10+i*7}px`, height: `${10+i*7}px`, opacity: 1-i*0.25 }} />)}
+                <div style={{ width: "4px", height: "4px", background: "#c0392b", borderRadius: "50%" }} />
+              </div>
+              <span style={{ fontSize: "13px", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+                signal<span style={{ color: "#c0392b", fontWeight: "bold" }}>OS</span>
+              </span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(245,240,232,0.4)" }}>Tensile Line Calculator</span>
+              <span style={{ fontSize: "9px", letterSpacing: "0.15em", textTransform: "uppercase", background: "rgba(192,57,43,0.2)", color: "#c0392b", border: "1px solid rgba(192,57,43,0.4)", padding: "2px 6px", borderRadius: "2px" }}>Beta</span>
+            </div>
+          </div>
+
+          <div style={{ maxWidth: "680px", margin: "0 auto", padding: "52px 40px 80px" }}>
+
+            {/* Title */}
+            <div style={{ marginBottom: "48px" }}>
+              <div style={{ fontSize: "11px", letterSpacing: "0.25em", textTransform: "uppercase", color: "#b8860b", marginBottom: "14px" }}>Diagnostic</div>
+              <h1 style={{ fontSize: "clamp(28px,4.5vw,46px)", fontWeight: "normal", lineHeight: "1.1", margin: "0 0 16px", color: "#f5f0e8" }}>
+                Find Your<br /><span style={{ color: "#b8860b" }}>Tensile Line</span>
+              </h1>
+              <p style={{ fontSize: "15px", lineHeight: "1.7", color: "rgba(245,240,232,0.6)", maxWidth: "480px", marginBottom: "10px" }}>
+                The threshold where your current marketing strategy requires reevaluation. Find the point where paid reach stops outperforming genuine human presence.
+              </p>
+              <div style={{ fontSize: "12px", color: "rgba(245,240,232,0.3)", fontStyle: "italic" }}>
+                Beta — uses industry averages. Goal: help you think differently, not audit your books.
+              </div>
+            </div>
+
+            {/* Progress */}
+            <div style={{ display: "flex", gap: "4px", marginBottom: "40px" }}>
+              {[1,2,3,4].map(s => (
+                <div key={s} style={{ flex: 1, height: "2px", background: s <= step ? "#b8860b" : "rgba(180,120,20,0.2)", transition: "background 0.3s" }} />
+              ))}
+            </div>
+
+            {/* Step 1 */}
+            {step === 1 && (
+              <div className="fade-in">
+                <StepHeader number={1} title="Your true cost per engagement" active={true} />
+                <p style={{ fontSize: "13px", color: "rgba(245,240,232,0.5)", marginBottom: "24px", lineHeight: "1.6" }}>
+                  Most CPE calculations miss internal time costs. Include everything to get an honest number.
+                </p>
+                <InputField label="Paid media spend" prefix="$" value={mediaSend} onChange={setMediaSpend} placeholder="e.g. 5000" sublabel="Total ad spend for the campaign or period" />
+                <InputField label="Production costs" prefix="$" value={productionCost} onChange={setProductionCost} placeholder="e.g. 2000" sublabel="Agency fees, freelancers, equipment, software" />
+                <InputField label="Internal team time" value={teamHours} onChange={setTeamHours} placeholder="e.g. 40" sublabel="Total hours your team spent on this campaign" />
+                <SelectField label="Your role (for hourly rate estimate)" value={role} onChange={setRole} options={Object.keys(ROLE_RATES)} sublabel="Used to estimate the value of your time" />
+                {role === "Other" && (
+                  <InputField label="Your estimated hourly value" prefix="$" value={customRate} onChange={setCustomRate} placeholder="e.g. 85" />
+                )}
+                <InputField label="Total engagements" value={totalEngagements} onChange={setTotalEngagements} placeholder="e.g. 1200" sublabel="Clicks, views, interactions — whatever you track" />
+
+                {totalCost > 0 && totalEngagements > 0 && (
+                  <div style={{ padding: "20px", background: "rgba(180,120,20,0.06)", border: "1px solid rgba(180,120,20,0.2)", marginBottom: "24px" }}>
+                    <div style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#b8860b", marginBottom: "8px" }}>Your true cost per engagement</div>
+                    <div style={{ fontSize: "36px", color: "#f5f0e8" }}>${trueCPE.toFixed(2)}</div>
+                    <div style={{ fontSize: "12px", color: "rgba(245,240,232,0.4)", marginTop: "4px" }}>
+                      Total cost: ${totalCost.toLocaleString()} ÷ {parseInt(totalEngagements).toLocaleString()} engagements
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 2 */}
+            {step === 2 && (
+              <div className="fade-in">
+                <StepHeader number={2} title="Estimate your cost per lead" active={true} />
+                <p style={{ fontSize: "13px", color: "rgba(245,240,232,0.5)", marginBottom: "24px", lineHeight: "1.6" }}>
+                  Select your industry to see typical CPL benchmarks. These are B2B averages — your specific numbers will vary.
+                </p>
+                <SelectField label="Your industry" value={industry} onChange={setIndustry} options={Object.keys(INDUSTRY_CPL)} />
+                {industryData && (
+                  <div style={{ padding: "20px", background: "rgba(180,120,20,0.06)", border: "1px solid rgba(180,120,20,0.2)", marginBottom: "24px" }}>
+                    <div style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#b8860b", marginBottom: "12px" }}>Industry CPL benchmarks</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+                      {[["Low", industryData.min], ["Average", industryData.avg], ["High", industryData.max]].map(([label, val]) => (
+                        <div key={label}>
+                          <div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.1em" }}>{label}</div>
+                          <div style={{ fontSize: "22px", color: label === "Average" ? "#b8860b" : "#f5f0e8" }}>${val}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: "11px", color: "rgba(245,240,232,0.3)", marginTop: "12px", fontStyle: "italic" }}>
+                      Using ${industryData.avg} average for your calculation. Source: Flyweel B2B Benchmark Index 2025.
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 3 */}
+            {step === 3 && (
+              <div className="fade-in">
+                <StepHeader number={3} title="Lead to relationship conversion" active={true} />
+                <p style={{ fontSize: "13px", color: "rgba(245,240,232,0.5)", marginBottom: "24px", lineHeight: "1.6" }}>
+                  Of your leads, what percentage became genuine conversations, relationships, or business outcomes? Be honest — industry average is 2-5%.
+                </p>
+                <InputField label="Conversion rate to meaningful relationship" value={relationshipPct} onChange={setRelationshipPct} placeholder="e.g. 3" sublabel="Enter as a percentage (e.g. 3 for 3%)" />
+                {relationshipPct && estimatedCPL > 0 && (
+                  <div style={{ padding: "20px", background: "rgba(180,120,20,0.06)", border: "1px solid rgba(180,120,20,0.2)", marginBottom: "24px" }}>
+                    <div style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#b8860b", marginBottom: "8px" }}>Your paid cost per meaningful relationship</div>
+                    <div style={{ fontSize: "36px", color: "#f5f0e8" }}>${paidCPR.toFixed(0)}</div>
+                    <div style={{ fontSize: "12px", color: "rgba(245,240,232,0.4)", marginTop: "4px" }}>
+                      ${estimatedCPL} CPL ÷ {relationshipPct}% conversion rate
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 4 */}
+            {step === 4 && (
+              <div className="fade-in">
+                <StepHeader number={4} title="Your activation alternative" active={true} />
+                <p style={{ fontSize: "13px", color: "rgba(245,240,232,0.5)", marginBottom: "24px", lineHeight: "1.6" }}>
+                  What would you invest in instead of paid lead generation? Your activation is yours to determine — dinner, workshop, conference, printed matter, or something else entirely.
+                </p>
+                <SelectField label="Activation type" value={activationType} onChange={(v) => { setActivationType(v); const opt = ACTIVATION_OPTIONS.find(o => o.label === v); if (opt) setActivationCostPerPerson(opt.defaultCost); }} options={ACTIVATION_OPTIONS.map(o => o.label)} />
+                <InputField label="Cost per person or unit" prefix="$" value={activationCostPerPerson} onChange={setActivationCostPerPerson} placeholder="e.g. 60" sublabel="Dinner: $50-75 | Workshop: $100-200 | Conference: $400-600" />
+                <InputField label="Expected meaningful relationships" value={targetRelationships} onChange={setTargetRelationships} placeholder="e.g. 8" sublabel="How many genuine relationships do you expect from this activation?" />
+                {activationCostPerPerson && targetRelationships && (
+                  <div style={{ padding: "20px", background: "rgba(180,120,20,0.06)", border: "1px solid rgba(180,120,20,0.2)", marginBottom: "24px" }}>
+                    <div style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#b8860b", marginBottom: "8px" }}>Your activation cost per relationship</div>
+                    <div style={{ fontSize: "36px", color: "#f5f0e8" }}>${activationCPR.toFixed(0)}</div>
+                    <div style={{ fontSize: "12px", color: "rgba(245,240,232,0.4)", marginTop: "4px" }}>
+                      ${activationCostPerPerson} per person × {targetRelationships} relationships
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Navigation */}
+            {!submitted && (
+              <div style={{ display: "flex", gap: "12px", marginTop: "8px", marginBottom: "40px" }}>
+                {step > 1 && (
+                  <button onClick={() => setStep(s => s-1)} style={{ flex: 1, padding: "14px", background: "transparent", border: "1px solid rgba(180,120,20,0.3)", color: "rgba(245,240,232,0.5)", fontSize: "12px", letterSpacing: "0.15em", textTransform: "uppercase", cursor: "pointer", fontFamily: "Georgia, serif" }}>
+                    Back
+                  </button>
+                )}
+                {step < 4 ? (
+                  <button
+                    onClick={() => canProceed[step] && setStep(s => s+1)}
+                    style={{ flex: 2, padding: "14px", background: canProceed[step] ? "transparent" : "transparent", border: `1px solid ${canProceed[step] ? "#b8860b" : "rgba(180,120,20,0.2)"}`, color: canProceed[step] ? "#b8860b" : "rgba(180,120,20,0.3)", fontSize: "12px", letterSpacing: "0.15em", textTransform: "uppercase", cursor: canProceed[step] ? "pointer" : "default", fontFamily: "Georgia, serif", transition: "all 0.2s" }}
+                    onMouseOver={e => { if(canProceed[step]) { e.target.style.background="#b8860b"; e.target.style.color="#0a0800"; }}}
+                    onMouseOut={e => { e.target.style.background="transparent"; e.target.style.color=canProceed[step]?"#b8860b":"rgba(180,120,20,0.3)"; }}
+                  >
+                    Continue →
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => canProceed[4] && setSubmitted(true)}
+                    style={{ flex: 2, padding: "14px", background: "transparent", border: `1px solid ${canProceed[4] ? "#b8860b" : "rgba(180,120,20,0.2)"}`, color: canProceed[4] ? "#b8860b" : "rgba(180,120,20,0.3)", fontSize: "12px", letterSpacing: "0.15em", textTransform: "uppercase", cursor: canProceed[4] ? "pointer" : "default", fontFamily: "Georgia, serif" }}
+                    onMouseOver={e => { if(canProceed[4]) { e.target.style.background="#b8860b"; e.target.style.color="#0a0800"; }}}
+                    onMouseOut={e => { e.target.style.background="transparent"; e.target.style.color=canProceed[4]?"#b8860b":"rgba(180,120,20,0.3)"; }}
+                  >
+                    Find My Tensile Line →
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Results */}
+            {submitted && status && (
+              <div className="fade-in">
+
+                {/* Status */}
+                <div style={{ borderTop: "1px solid rgba(180,120,20,0.3)", borderBottom: "1px solid rgba(180,120,20,0.3)", padding: "40px 0", marginBottom: "40px", textAlign: "center" }}>
+                  <div style={{ fontSize: "11px", letterSpacing: "0.25em", textTransform: "uppercase", color: "rgba(245,240,232,0.4)", marginBottom: "16px" }}>Your Tensile Line Status</div>
+                  <div style={{ fontSize: "52px", fontWeight: "normal", color: statusConfig[status].color, lineHeight: "1", marginBottom: "12px", letterSpacing: "0.05em" }}>{statusConfig[status].label}</div>
+                  <div style={{ fontSize: "14px", color: "rgba(245,240,232,0.6)", maxWidth: "400px", margin: "0 auto 24px", lineHeight: "1.6" }}>{statusConfig[status].description}</div>
+                  <div style={{ fontSize: "12px", color: "rgba(245,240,232,0.35)", fontStyle: "italic" }}>
+                    {status === "CROSSED" ? "Hard Tensile Line" : status === "APPROACHING" ? "Soft Tensile Line" : "Below the line"}
+                  </div>
+                </div>
+
+                {/* Comparison table */}
+                <div style={{ marginBottom: "40px" }}>
+                  <div style={{ fontSize: "11px", letterSpacing: "0.25em", textTransform: "uppercase", color: "#b8860b", marginBottom: "20px" }}>Your Numbers</div>
+                  <div style={{ border: "1px solid rgba(180,120,20,0.2)" }}>
+                    {[
+                      ["True Cost Per Engagement", `$${trueCPE.toFixed(2)}`, "—"],
+                      ["Estimated CPL", `$${estimatedCPL}`, "—"],
+                      ["Cost Per Meaningful Relationship", `$${paidCPR.toFixed(0)}`, `$${activationCPR.toFixed(0)}`],
+                    ].map(([label, paid, activation], i) => (
+                      <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", borderBottom: i < 2 ? "1px solid rgba(180,120,20,0.1)" : "none" }}>
+                        <div style={{ padding: "14px 16px", fontSize: "13px", color: "rgba(245,240,232,0.6)", borderRight: "1px solid rgba(180,120,20,0.1)" }}>{label}</div>
+                        <div style={{ padding: "14px 16px", fontSize: "14px", color: "#f5f0e8", textAlign: "center", borderRight: "1px solid rgba(180,120,20,0.1)" }}>
+                          <div style={{ fontSize: "9px", color: "rgba(245,240,232,0.3)", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Paid</div>
+                          {paid}
+                        </div>
+                        <div style={{ padding: "14px 16px", fontSize: "14px", color: activation !== "—" ? "#b8860b" : "rgba(245,240,232,0.3)", textAlign: "center" }}>
+                          <div style={{ fontSize: "9px", color: "rgba(245,240,232,0.3)", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Activation</div>
+                          {activation}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Recommendation */}
+                <div style={{ padding: "24px", background: "rgba(180,120,20,0.05)", border: `1px solid ${statusConfig[status].color}33`, marginBottom: "40px" }}>
+                  <div style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: statusConfig[status].color, marginBottom: "10px" }}>Recommended Action</div>
+                  <p style={{ fontSize: "15px", lineHeight: "1.7", color: "rgba(245,240,232,0.8)", margin: 0 }}>{recommendation[status]}</p>
+                </div>
+
+                {/* AI Prompts */}
+                <div style={{ marginBottom: "40px", border: "1px solid rgba(180,120,20,0.2)" }}>
+                  <button onClick={() => setPromptsOpen(!promptsOpen)} style={{ width: "100%", padding: "22px", background: "transparent", border: "none", color: "#f5f0e8", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left" }}>
+                    <div>
+                      <div style={{ fontSize: "11px", letterSpacing: "0.25em", textTransform: "uppercase", color: "#b8860b", marginBottom: "4px" }}>Go Deeper</div>
+                      <div style={{ fontSize: "16px" }}>AI Prompts for Further Analysis</div>
+                      <div style={{ fontSize: "12px", color: "rgba(245,240,232,0.4)", marginTop: "3px" }}>4 prompts tailored to your numbers — copy into any AI tool</div>
+                    </div>
+                    <span style={{ color: "#b8860b", fontSize: "18px", marginLeft: "16px", flexShrink: 0, transform: promptsOpen ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>→</span>
+                  </button>
+                  {promptsOpen && (
+                    <div style={{ borderTop: "1px solid rgba(180,120,20,0.2)", padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                      <p style={{ fontSize: "12px", color: "rgba(245,240,232,0.4)", lineHeight: "1.6" }}>Copy any prompt and paste into ChatGPT, Claude, or your AI tool of choice.</p>
+                      {prompts.map((p, i) => (
+                        <div key={i} style={{ padding: "18px", border: "1px solid rgba(180,120,20,0.2)", background: "rgba(180,120,20,0.03)" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px", gap: "12px" }}>
+                            <div>
+                              <span style={{ fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#b8860b", display: "block", marginBottom: "3px" }}>{p.label}</span>
+                              <span style={{ fontSize: "14px", color: "#f5f0e8" }}>{p.title}</span>
+                              <span style={{ fontSize: "11px", color: "rgba(245,240,232,0.4)", display: "block", marginTop: "2px" }}>{p.description}</span>
+                            </div>
+                            <CopyButton text={p.prompt} />
+                          </div>
+                          <div style={{ fontSize: "11px", lineHeight: "1.6", color: "rgba(245,240,232,0.3)", fontStyle: "italic", borderTop: "1px solid rgba(180,120,20,0.1)", paddingTop: "10px" }}>
+                            {p.prompt.substring(0, 160)}...
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer quote */}
+                <div style={{ padding: "22px", background: "rgba(180,120,20,0.04)", border: "1px solid rgba(180,120,20,0.15)", fontSize: "13px", lineHeight: "1.7", color: "rgba(245,240,232,0.45)", fontStyle: "italic", marginBottom: "36px" }}>
+                  The Tensile Line isn't a fixed number. It's yours to determine — and it moves as your industry, your audience, and your strategy evolve. Revisit this quarterly.
+                  <div style={{ marginTop: "10px", fontStyle: "normal", fontSize: "11px", letterSpacing: "0.1em" }}>— signalOS, signal-os.co</div>
+                </div>
+
+                {/* Subscribe */}
+                <div style={{ borderTop: "1px solid rgba(180,120,20,0.3)", paddingTop: "36px", textAlign: "center" }}>
+                  <div style={{ fontSize: "11px", letterSpacing: "0.25em", textTransform: "uppercase", color: "#b8860b", marginBottom: "12px" }}>Go Further</div>
+                  <p style={{ fontSize: "15px", color: "rgba(245,240,232,0.7)", lineHeight: "1.6", margin: "0 0 20px", maxWidth: "420px", marginLeft: "auto", marginRight: "auto" }}>
+                    signalOS goes deeper on brand strategy and operating experience every two weeks. Written from inside, not outside. Free.
+                  </p>
+                  <a href="https://signal-os.co" target="_blank" style={{ display: "inline-block", padding: "14px 32px", background: "transparent", border: "1px solid #b8860b", color: "#b8860b", fontSize: "12px", letterSpacing: "0.2em", textTransform: "uppercase", textDecoration: "none", transition: "all 0.2s" }}
+                    onMouseOver={e => { e.target.style.background="#b8860b"; e.target.style.color="#0a0800"; }}
+                    onMouseOut={e => { e.target.style.background="transparent"; e.target.style.color="#b8860b"; }}
+                  >
+                    Subscribe Free →
+                  </a>
+                  <div style={{ marginTop: "10px", fontSize: "11px", color: "rgba(245,240,232,0.25)" }}>No spam. Unsubscribe anytime. One post every two weeks.</div>
+                </div>
+
+                {/* Restart */}
+                <div style={{ textAlign: "center", marginTop: "32px" }}>
+                  <button onClick={() => { setSubmitted(false); setStep(1); setMediaSpend(""); setProductionCost(""); setTeamHours(""); setRole(""); setCustomRate(""); setTotalEngagements(""); setIndustry(""); setRelationshipPct(""); setActivationType(""); setActivationCostPerPerson(""); setTargetRelationships(""); setPromptsOpen(false); }} style={{ background: "transparent", border: "none", color: "rgba(245,240,232,0.3)", fontSize: "12px", cursor: "pointer", textDecoration: "underline", fontFamily: "Georgia, serif" }}>
+                    Start over
+                  </button>
+                </div>
+
+              </div>
+            )}
+
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
