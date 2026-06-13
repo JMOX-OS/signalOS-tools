@@ -290,29 +290,62 @@
                 <StepHeader number={3} title="Your Tensile Line" subtitle="Based on your CPE and industry data, here's what your paid media spend is actually costing you per meaningful relationship." />
                 <ResultBox label="Your True CPE" value={`$${trueCPE.toFixed(2)}`} sublabel="Total cost including media, production, and your time" />
                 <ResultBox label="Estimated CPL for your industry" value={`$${estimatedCPL}`} sublabel={`${industry} average. Source: Flyweel B2B Benchmark Index 2025.`} />
-                <ResultBox label="Your estimated cost per meaningful relationship" value={`$${paidCPR.toFixed(0)}`} sublabel={`Based on ${industryData?.conversionRate}% industry conversion rate (${industryData?.conversionSource}). Your actual cost may be higher.`} highlight={true} />
-                <div style={{ padding: "16px 20px", background: "rgba(192,57,43,0.05)", border: "1px solid rgba(192,57,43,0.2)", marginBottom: "20px" }}>
-                  <div style={{ fontSize: "13px", lineHeight: "1.7", color: "rgba(245,240,232,0.6)" }}>
-                    You're spending <strong style={{ color: "#f5f0e8" }}>${paidCPR.toFixed(0)}</strong> per meaningful relationship through paid media. Continue to see what that same budget could deliver through direct human activation.
-                  </div>
-                </div>
-                <div style={{ fontSize: "11px", color: "rgba(245,240,232,0.3)", fontStyle: "italic", marginBottom: "8px" }}>Industry averages used. Directional estimates, not a financial audit.</div>
-                <NavButtons onBack={() => setStep(2)} onNext={() => setStep(4)} nextEnabled={true} nextLabel="See what else your budget could do" />
+                <ResultBox label="Your estimated cost per meaningful relationship via paid" value={`$${paidCPR.toFixed(0)}`} sublabel={`Based on ${industryData?.conversionRate}% industry conversion rate (${industryData?.conversionSource}). Your actual cost may be higher.`} highlight={true} />
+
+                {(() => {
+                  const dinnerCost = 60;
+                  const dinnerRatio = paidCPR / dinnerCost;
+                  const dinnerStatus = dinnerRatio >= 1.2 ? "CROSSED" : dinnerRatio >= 0.8 ? "APPROACHING" : "BELOW";
+                  const dinnerColors = { CROSSED: "#f87171", APPROACHING: "#fbbf24", BELOW: "#4ade80" };
+                  const dinnerLabels = { CROSSED: "Hard Tensile Line — Crossed", APPROACHING: "Soft Tensile Line — Approaching", BELOW: "Below the Line" };
+                  const dinnerDescriptions = {
+                    CROSSED: `Your paid CPR ($${paidCPR.toFixed(0)}) exceeds the cost of a dinner seat ($${dinnerCost}). You've crossed the Tensile Line. The relationship you'd build at dinner compounds. The lead decays.`,
+                    APPROACHING: `Your paid CPR ($${paidCPR.toFixed(0)}) is close to the cost of a dinner seat ($${dinnerCost}). You're approaching your Tensile Line. Worth running a dinner experiment alongside your next campaign.`,
+                    BELOW: `Your paid CPR ($${paidCPR.toFixed(0)}) is still below the cost of a dinner seat ($${dinnerCost}). You're below the Tensile Line for this activation type. Paid is still more efficient — for now.`,
+                  };
+                  return (
+                    <div style={{ marginBottom: "24px" }}>
+                      <div style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#b8860b", marginBottom: "16px" }}>Your Tensile Line — If You Took That Lead to Dinner Instead</div>
+                      <div style={{ padding: "20px", background: "rgba(180,120,20,0.05)", border: `2px solid ${dinnerColors[dinnerStatus]}`, marginBottom: "12px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
+                          <div>
+                            <div style={{ fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase", color: dinnerColors[dinnerStatus], marginBottom: "4px" }}>{dinnerLabels[dinnerStatus]}</div>
+                            <div style={{ fontSize: "13px", color: "rgba(245,240,232,0.7)", lineHeight: "1.6", maxWidth: "420px" }}>{dinnerDescriptions[dinnerStatus]}</div>
+                          </div>
+                          <div style={{ textAlign: "right", flexShrink: 0 }}>
+                            <div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Dinner CPR</div>
+                            <div style={{ fontSize: "28px", color: dinnerColors[dinnerStatus] }}>${dinnerCost}</div>
+                          </div>
+                        </div>
+                        <div style={{ borderTop: "1px solid rgba(180,120,20,0.15)", paddingTop: "10px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                          <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Paid CPR</div><div style={{ fontSize: "20px", color: "#f87171" }}>${paidCPR.toFixed(0)}</div></div>
+                          <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Dinner CPR</div><div style={{ fontSize: "20px", color: "#4ade80" }}>${dinnerCost}</div></div>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: "12px", color: "rgba(245,240,232,0.35)", fontStyle: "italic" }}>Dinner benchmark: $60/person. Industry averages used throughout. Directional estimates, not a financial audit.</div>
+                    </div>
+                  );
+                })()}
+
+                <NavButtons onBack={() => setStep(2)} onNext={() => setStep(4)} nextEnabled={true} nextLabel="See your Tensile Line for other activations →" />
               </div>
             )}
 
             {step === 4 && (
               <div className="fade-in">
-                <StepHeader number={4} title="Your Non-Paid Options" subtitle="For the same budget, here's what relationship-based activation could deliver." />
-                <div style={{ padding: "18px 20px", background: "rgba(180,120,20,0.06)", border: "1px solid rgba(180,120,20,0.2)", marginBottom: "28px" }}>
-                  <div style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#b8860b", marginBottom: "12px" }}>What your current paid budget delivers</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                    <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Estimated leads</div><div style={{ fontSize: "28px", color: "#f5f0e8" }}>{estimatedLeads}</div></div>
-                    <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Meaningful relationships</div><div style={{ fontSize: "28px", color: "#f87171" }}>{expectedRelationships}</div></div>
+                <StepHeader number={4} title="Your Tensile Line for Other Activations" subtitle="Explore how your Tensile Line shifts across different activation options — workshops, printed matter, roundtables, and more." />
+
+                {/* Dinner result carried forward */}
+                <div style={{ padding: "16px 20px", background: "rgba(180,120,20,0.04)", border: "1px solid rgba(180,120,20,0.2)", marginBottom: "24px" }}>
+                  <div style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#b8860b", marginBottom: "8px" }}>Your baseline — dinner</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+                    <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Paid CPR</div><div style={{ fontSize: "20px", color: "#f87171" }}>${paidCPR.toFixed(0)}</div></div>
+                    <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Dinner CPR</div><div style={{ fontSize: "20px", color: "#4ade80" }}>$60</div></div>
+                    <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Dinners for budget</div><div style={{ fontSize: "20px", color: "#f5f0e8" }}>{Math.floor(totalCost / 60)}</div></div>
                   </div>
-                  <div style={{ fontSize: "11px", color: "rgba(245,240,232,0.35)", marginTop: "8px", fontStyle: "italic" }}>Based on ${totalCost.toLocaleString()} spend, ${estimatedCPL} CPL, {industryData?.conversionRate}% conversion rate.</div>
                 </div>
-                <Field label="Choose an activation type" sublabel="Select to see what the same budget could deliver">
+
+                <Field label="Explore another activation type" sublabel="See how your Tensile Line shifts for different options">
                   <select value={activationType} onChange={e => { setActivationType(e.target.value); setActivationCustomCost(""); }}>
                     <option value="">Select activation type...</option>
                     {ACTIVATION_OPTIONS.map(a => <option key={a.label} value={a.label}>{a.label}{a.costPerPerson ? ` (~$${a.costPerPerson}/person)` : ""}</option>)}
