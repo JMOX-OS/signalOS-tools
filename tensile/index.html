@@ -382,18 +382,54 @@
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}><span style={{ color: "#b8860b", fontSize: "16px", flexShrink: 0 }}>$</span><input type="number" value={activationCustomCost} onChange={e => setActivationCustomCost(e.target.value)} placeholder="e.g. 80" min="0" /></div>
                   </Field>
                 )}
-                {activationType && activationCostPerPerson > 0 && (
-                  <div style={{ padding: "18px 20px", background: "rgba(180,120,20,0.06)", border: "1px solid #b8860b", marginBottom: "16px" }}>
-                    <div style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#b8860b", marginBottom: "12px" }}>What {activationType} delivers for ${totalCost.toLocaleString()}</div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "12px" }}>
-                      <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.1em" }}>People reached</div><div style={{ fontSize: "28px", color: "#f5f0e8" }}>{activationRelationships}</div></div>
-                      <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Cost per relationship</div><div style={{ fontSize: "28px", color: "#4ade80" }}>${activationCostPerPerson}</div></div>
+                {activationType && activationCostPerPerson > 0 && (() => {
+                  const ratio = paidCPR / activationCostPerPerson;
+                  const selStatus = ratio >= 1.2 ? "CROSSED" : ratio >= 0.8 ? "APPROACHING" : "BELOW";
+                  const selColors = { CROSSED: "#f87171", APPROACHING: "#fbbf24", BELOW: "#4ade80" };
+                  const selLabels = { CROSSED: "Hard Tensile Line — Crossed", APPROACHING: "Soft Tensile Line — Approaching", BELOW: "Below the Line" };
+                  const selDescriptions = {
+                    CROSSED: `Your paid CPR ($${paidCPR.toFixed(0)}) significantly exceeds the cost of this activation ($${activationCostPerPerson}). You've crossed the Tensile Line for this option.`,
+                    APPROACHING: `Your paid CPR ($${paidCPR.toFixed(0)}) is close to the cost of this activation ($${activationCostPerPerson}). Worth testing alongside your next campaign.`,
+                    BELOW: `Your paid CPR ($${paidCPR.toFixed(0)}) is still below the cost of this activation ($${activationCostPerPerson}). Paid is more efficient for this option — for now.`,
+                  };
+                  const dinnerCPR = 60;
+                  const vsDinner = activationCostPerPerson - dinnerCPR;
+                  const vsDinnerText = vsDinner === 0
+                    ? "Same cost per relationship as dinner."
+                    : vsDinner < 0
+                      ? `$${Math.abs(vsDinner).toFixed(0)} more efficient than dinner per relationship.`
+                      : `$${vsDinner.toFixed(0)} less efficient than dinner per relationship.`;
+                  const vsDinnerColor = vsDinner <= 0 ? "#4ade80" : "#fbbf24";
+
+                  return (
+                    <div style={{ marginBottom: "24px" }}>
+                      <div style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#b8860b", marginBottom: "16px" }}>Your Tensile Line — If You Chose {activationType}</div>
+                      <div style={{ padding: "20px", background: "rgba(180,120,20,0.05)", border: `2px solid ${selColors[selStatus]}`, marginBottom: "12px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
+                          <div>
+                            <div style={{ fontSize: "16px", letterSpacing: "0.1em", textTransform: "uppercase", color: selColors[selStatus], marginBottom: "8px", fontWeight: "normal" }}>{selLabels[selStatus]}</div>
+                            <div style={{ fontSize: "13px", color: "rgba(245,240,232,0.7)", lineHeight: "1.6", maxWidth: "420px" }}>{selDescriptions[selStatus]}</div>
+                          </div>
+                          <div style={{ textAlign: "right", flexShrink: 0 }}>
+                            <div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Activation CPR</div>
+                            <div style={{ fontSize: "28px", color: selColors[selStatus] }}>${activationCostPerPerson}</div>
+                          </div>
+                        </div>
+                        <div style={{ borderTop: "1px solid rgba(180,120,20,0.15)", paddingTop: "10px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "10px" }}>
+                          <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Paid CPR</div><div style={{ fontSize: "20px", color: "#f87171" }}>${paidCPR.toFixed(0)}</div></div>
+                          <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.1em" }}>{activationType} CPR</div><div style={{ fontSize: "20px", color: selColors[selStatus] }}>${activationCostPerPerson}</div></div>
+                        </div>
+                        <div style={{ borderTop: "1px solid rgba(180,120,20,0.15)", paddingTop: "10px" }}>
+                          <div style={{ fontSize: "12px", color: vsDinnerColor }}>vs. Dinner ($60): {vsDinnerText}</div>
+                        </div>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", padding: "16px 20px", background: "rgba(180,120,20,0.03)", border: "1px solid rgba(180,120,20,0.15)" }}>
+                        <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.1em" }}>People reached for ${totalCost.toLocaleString()}</div><div style={{ fontSize: "24px", color: "#f5f0e8" }}>{activationRelationships}</div></div>
+                        <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Relationships via paid</div><div style={{ fontSize: "24px", color: "#f87171" }}>{expectedRelationships}</div></div>
+                      </div>
                     </div>
-                    <div style={{ borderTop: "1px solid rgba(180,120,20,0.2)", paddingTop: "12px", fontSize: "13px", color: "rgba(245,240,232,0.6)", lineHeight: "1.6" }}>
-                      Paid media: <strong style={{ color: "#f87171" }}>${paidCPR.toFixed(0)}</strong> per meaningful relationship that decays. {activationType}: <strong style={{ color: "#4ade80" }}>${activationCostPerPerson}</strong> per relationship that compounds.
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
                 <NavButtons onBack={() => setStep(3)} onNext={() => setStep(5)} nextEnabled={!!step4Valid} nextLabel="See my Tensile Line status" />
               </div>
             )}
