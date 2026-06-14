@@ -422,9 +422,12 @@
                           <div style={{ fontSize: "12px", color: vsDinnerColor }}>vs. Dinner ($60): {vsDinnerText}</div>
                         </div>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", padding: "16px 20px", background: "rgba(180,120,20,0.03)", border: "1px solid rgba(180,120,20,0.15)" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", padding: "16px 20px", background: "rgba(180,120,20,0.03)", border: "1px solid rgba(180,120,20,0.15)", marginBottom: "8px" }}>
                         <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.1em" }}>People reached for ${totalCost.toLocaleString()}</div><div style={{ fontSize: "24px", color: "#f5f0e8" }}>{activationRelationships}</div></div>
                         <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Relationships via paid</div><div style={{ fontSize: "24px", color: "#f87171" }}>{expectedRelationships}</div></div>
+                      </div>
+                      <div style={{ fontSize: "11px", color: "rgba(245,240,232,0.3)", fontStyle: "italic" }}>
+                        "Relationships via paid" = estimated leads ({estimatedLeads}) × {industry} engagement-to-lead conversion rate ({industryData?.conversionRate}%, {industryData?.conversionSource}). "People reached" via activation assumes every attendee or recipient is a genuine relationship — a different and more direct kind of contact.
                       </div>
                     </div>
                   );
@@ -449,7 +452,7 @@
                       ["Estimated CPE", `$${trueCPE.toFixed(2)}`, "—"],
                       ["Cost per lead vs. cost per relationship", `$${paidCPR.toFixed(0)}`, `$${activationCostPerPerson}`],
                       ["Reach from this budget", `${estimatedLeads} leads`, `${activationRelationships} people`],
-                      ["Relationships from budget", `${expectedRelationships}`, `${activationRelationships}`],
+                      ["Estimated relationships", `${expectedRelationships}`, `${activationRelationships}`],
                     ].map(([label, paid, activation], i) => (
                       <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", borderBottom: i < 3 ? "1px solid rgba(180,120,20,0.1)" : "none" }}>
                         <div style={{ padding: "12px 16px", fontSize: "12px", color: "rgba(245,240,232,0.55)", borderRight: "1px solid rgba(180,120,20,0.1)" }}>{label}</div>
@@ -461,6 +464,9 @@
                         </div>
                       </div>
                     ))}
+                  </div>
+                  <div style={{ fontSize: "11px", color: "rgba(245,240,232,0.3)", fontStyle: "italic", marginTop: "8px", lineHeight: "1.6" }}>
+                    "Estimated relationships" applies your industry's engagement-to-lead conversion rate ({industryData?.conversionRate}%, {industryData?.conversionSource}) to your estimated leads. For {activationType}, every person reached is counted as a direct relationship.
                   </div>
                 </div>
 
