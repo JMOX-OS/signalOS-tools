@@ -153,7 +153,7 @@
       const industryData = INDUSTRY_DATA[industry] || null;
       const estimatedCPL = industryData ? industryData.cpl.avg : 0;
       const conversionRate = industryData ? industryData.conversionRate / 100 : 0;
-      const paidCPR = conversionRate > 0 ? estimatedCPL / conversionRate : 0;
+      const paidCPR = estimatedCPL;
 
       const selectedActivation = ACTIVATION_OPTIONS.find(a => a.label === activationType);
       const activationCostPerPerson = activationType === "Custom activation"
@@ -174,9 +174,9 @@
       const status = getStatus();
 
       const statusConfig = {
-        CROSSED: { color: "#f87171", label: "Hard Tensile Line — Crossed", description: "Your paid cost per meaningful relationship significantly exceeds your activation cost. The material is under more stress than it can hold." },
-        APPROACHING: { color: "#fbbf24", label: "Soft Tensile Line — Approaching", description: "You're within 20% of your Tensile Line. Start planning your activation strategy now before the line firms up." },
-        BELOW: { color: "#4ade80", label: "Below the Line", description: "Paid is still more efficient for your numbers. Revisit this quarterly — CPLs are rising across all platforms." },
+        CROSSED: { color: "#f87171", label: "Hard Tensile Line — Crossed", description: "Your cost per lead significantly exceeds your activation cost per relationship. The material is under more stress than it can hold." },
+        APPROACHING: { color: "#fbbf24", label: "Soft Tensile Line — Approaching", description: "Your cost per lead is within 20% of your activation cost. Start planning your activation strategy now before the line firms up." },
+        BELOW: { color: "#4ade80", label: "Below the Line", description: "Your cost per lead is still below your activation cost. Paid is more efficient for your numbers. Revisit this quarterly — CPLs are rising across all platforms." },
       };
 
       const recommendation = {
@@ -187,9 +187,9 @@
 
       const aiPrompts = status ? [
         { label: "Strategic Reallocation", title: "Help me shift budget toward activation", prompt: `I ran a Tensile Line analysis. True CPE: $${trueCPE.toFixed(2)}. Industry: ${industry}. Estimated CPL: $${estimatedCPL}. Paid cost per meaningful relationship: $${paidCPR.toFixed(0)}. Activation cost per person: $${activationCostPerPerson} via ${activationType}. Status: ${status}. Help me build a concrete plan to shift budget toward relationship-based activation. Include how to make the case to leadership, what a realistic first activation looks like, and how to measure success in 90 days.` },
-        { label: "Leadership Case", title: "Make the case to my leadership team", prompt: `I need to make the case that our paid media spend has crossed a threshold where relationship-based activation delivers better ROI. Numbers: Industry ${industry}. Estimated CPL $${estimatedCPL}. Paid CPR $${paidCPR.toFixed(0)}. Activation cost $${activationCostPerPerson} via ${activationType}. Status: ${status}. Build a one-page business case connecting these numbers to revenue outcomes. My leadership responds to metrics and ROI, not marketing theory.` },
+        { label: "Leadership Case", title: "Make the case to my leadership team", prompt: `I need to make the case that our paid media spend has crossed a threshold where relationship-based activation delivers better ROI. Numbers: Industry ${industry}. Estimated CPL $${estimatedCPL}. Paid CPL $${paidCPR.toFixed(0)}. Activation cost $${activationCostPerPerson} via ${activationType}. Status: ${status}. Build a one-page business case connecting these numbers to revenue outcomes. My leadership responds to metrics and ROI, not marketing theory.` },
         { label: "Activation Design", title: `Design my first ${activationType || "activation"}`, prompt: `I want to design my first relationship-based activation. Type: ${activationType}. Industry: ${industry}. Budget per person: $${activationCostPerPerson}. Expected people: ${activationRelationships}. Design the activation in detail — who to invite, what question to organize it around, how to structure the experience, and how to follow up in a way that builds genuine relationships rather than feeding a sales funnel.` },
-        { label: "Quarterly Review", title: "Build a Tensile Line review process", prompt: `I want to build a quarterly process to track my Tensile Line. Current: True CPE $${trueCPE.toFixed(2)}, Industry ${industry}, Paid CPR $${paidCPR.toFixed(0)}, Activation CPR $${activationCostPerPerson}, Status: ${status}. Design a simple quarterly review — what to measure, what questions to ask, and how to know when my Tensile Line has shifted enough to warrant a budget reallocation.` },
+        { label: "Quarterly Review", title: "Build a Tensile Line review process", prompt: `I want to build a quarterly process to track my Tensile Line. Current: True CPE $${trueCPE.toFixed(2)}, Industry ${industry}, Paid CPL $${paidCPR.toFixed(0)}, Activation CPR $${activationCostPerPerson}, Status: ${status}. Design a simple quarterly review — what to measure, what questions to ask, and how to know when my Tensile Line has shifted enough to warrant a budget reallocation.` },
       ] : [];
 
       const step1Valid = mediaSpend && engagements && role;
@@ -315,8 +315,7 @@
                 </div>
 
                 <ResultBox label="Your Estimated CPE" value={`$${trueCPE.toFixed(2)}`} sublabel="Total cost including media, external production, and internal team time" />
-                <ResultBox label="Estimated CPL for your industry" value={`$${estimatedCPL}`} sublabel={`${industry} average. Source: Flyweel B2B Benchmark Index 2025.`} />
-                <ResultBox label="Your estimated cost per meaningful relationship" value={`$${paidCPR.toFixed(0)}`} sublabel={`Based on ${industryData?.conversionRate}% industry conversion rate (${industryData?.conversionSource}). Your actual cost may be higher.`} highlight={true} />
+                <ResultBox label="Your estimated cost per lead (CPL)" value={`$${paidCPR.toFixed(0)}`} sublabel={`${industry} average. Source: Flyweel B2B Benchmark Index 2025. This is the number you're comparing against activation cost.`} highlight={true} />
 
                 {(() => {
                   const dinnerCost = 60;
@@ -325,9 +324,9 @@
                   const dinnerColors = { CROSSED: "#f87171", APPROACHING: "#fbbf24", BELOW: "#4ade80" };
                   const dinnerLabels = { CROSSED: "Hard Tensile Line — Crossed", APPROACHING: "Soft Tensile Line — Approaching", BELOW: "Below the Line" };
                   const dinnerDescriptions = {
-                    CROSSED: `Your paid CPR ($${paidCPR.toFixed(0)}) exceeds the cost of a dinner seat ($${dinnerCost}). You've crossed the Tensile Line. The relationship you'd build at dinner compounds. The lead decays.`,
-                    APPROACHING: `Your paid CPR ($${paidCPR.toFixed(0)}) is close to the cost of a dinner seat ($${dinnerCost}). You're approaching your Tensile Line. Worth running a dinner experiment alongside your next campaign.`,
-                    BELOW: `Your paid CPR ($${paidCPR.toFixed(0)}) is still below the cost of a dinner seat ($${dinnerCost}). You're below the Tensile Line for this activation type. Paid is still more efficient — for now.`,
+                    CROSSED: `Your cost per lead ($${paidCPR.toFixed(0)}) exceeds the cost of a dinner seat ($${dinnerCost}). You've crossed the Tensile Line. The relationship you'd build at dinner compounds. The lead decays.`,
+                    APPROACHING: `Your cost per lead ($${paidCPR.toFixed(0)}) is close to the cost of a dinner seat ($${dinnerCost}). You're approaching your Tensile Line. Worth running a dinner experiment alongside your next campaign.`,
+                    BELOW: `Your cost per lead ($${paidCPR.toFixed(0)}) is still below the cost of a dinner seat ($${dinnerCost}). You're below the Tensile Line for this activation type. Paid is still more efficient — for now.`,
                   };
                   return (
                     <div style={{ marginBottom: "24px" }}>
@@ -344,7 +343,7 @@
                           </div>
                         </div>
                         <div style={{ borderTop: "1px solid rgba(180,120,20,0.15)", paddingTop: "10px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                          <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Paid CPR</div><div style={{ fontSize: "20px", color: "#f87171" }}>${paidCPR.toFixed(0)}</div></div>
+                          <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Paid CPL</div><div style={{ fontSize: "20px", color: "#f87171" }}>${paidCPR.toFixed(0)}</div></div>
                           <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Dinner CPR</div><div style={{ fontSize: "20px", color: "#4ade80" }}>${dinnerCost}</div></div>
                         </div>
                       </div>
@@ -365,7 +364,7 @@
                 <div style={{ padding: "16px 20px", background: "rgba(180,120,20,0.04)", border: "1px solid rgba(180,120,20,0.2)", marginBottom: "24px" }}>
                   <div style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#b8860b", marginBottom: "8px" }}>Your baseline — dinner</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
-                    <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Paid CPR</div><div style={{ fontSize: "20px", color: "#f87171" }}>${paidCPR.toFixed(0)}</div></div>
+                    <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Paid CPL</div><div style={{ fontSize: "20px", color: "#f87171" }}>${paidCPR.toFixed(0)}</div></div>
                     <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Dinner CPR</div><div style={{ fontSize: "20px", color: "#4ade80" }}>$60</div></div>
                     <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Dinners for budget</div><div style={{ fontSize: "20px", color: "#f5f0e8" }}>{Math.floor(totalCost / 60)}</div></div>
                   </div>
@@ -388,9 +387,9 @@
                   const selColors = { CROSSED: "#f87171", APPROACHING: "#fbbf24", BELOW: "#4ade80" };
                   const selLabels = { CROSSED: "Hard Tensile Line — Crossed", APPROACHING: "Soft Tensile Line — Approaching", BELOW: "Below the Line" };
                   const selDescriptions = {
-                    CROSSED: `Your paid CPR ($${paidCPR.toFixed(0)}) significantly exceeds the cost of this activation ($${activationCostPerPerson}). You've crossed the Tensile Line for this option.`,
-                    APPROACHING: `Your paid CPR ($${paidCPR.toFixed(0)}) is close to the cost of this activation ($${activationCostPerPerson}). Worth testing alongside your next campaign.`,
-                    BELOW: `Your paid CPR ($${paidCPR.toFixed(0)}) is still below the cost of this activation ($${activationCostPerPerson}). Paid is more efficient for this option — for now.`,
+                    CROSSED: `Your cost per lead ($${paidCPR.toFixed(0)}) significantly exceeds the cost of this activation ($${activationCostPerPerson}). You've crossed the Tensile Line for this option.`,
+                    APPROACHING: `Your cost per lead ($${paidCPR.toFixed(0)}) is close to the cost of this activation ($${activationCostPerPerson}). Worth testing alongside your next campaign.`,
+                    BELOW: `Your cost per lead ($${paidCPR.toFixed(0)}) is still below the cost of this activation ($${activationCostPerPerson}). Paid is more efficient for this option — for now.`,
                   };
                   const dinnerCPR = 60;
                   const vsDinner = activationCostPerPerson - dinnerCPR;
@@ -416,7 +415,7 @@
                           </div>
                         </div>
                         <div style={{ borderTop: "1px solid rgba(180,120,20,0.15)", paddingTop: "10px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "10px" }}>
-                          <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Paid CPR</div><div style={{ fontSize: "20px", color: "#f87171" }}>${paidCPR.toFixed(0)}</div></div>
+                          <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Paid CPL</div><div style={{ fontSize: "20px", color: "#f87171" }}>${paidCPR.toFixed(0)}</div></div>
                           <div><div style={{ fontSize: "10px", color: "rgba(245,240,232,0.4)", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.1em" }}>{activationType} CPR</div><div style={{ fontSize: "20px", color: selColors[selStatus] }}>${activationCostPerPerson}</div></div>
                         </div>
                         <div style={{ borderTop: "1px solid rgba(180,120,20,0.15)", paddingTop: "10px" }}>
@@ -446,9 +445,9 @@
                   <div style={{ fontSize: "11px", letterSpacing: "0.25em", textTransform: "uppercase", color: "#b8860b", marginBottom: "16px" }}>Your Numbers</div>
                   <div style={{ border: "1px solid rgba(180,120,20,0.2)" }}>
                     {[
-                      ["True CPE", `$${trueCPE.toFixed(2)}`, "—"],
-                      ["Estimated CPL", `$${estimatedCPL}`, "—"],
-                      ["Cost per meaningful relationship", `$${paidCPR.toFixed(0)}`, `$${activationCostPerPerson}`],
+                      ["Estimated CPE", `$${trueCPE.toFixed(2)}`, "—"],
+                      ["Cost per lead vs. cost per relationship", `$${paidCPR.toFixed(0)}`, `$${activationCostPerPerson}`],
+                      ["Reach from this budget", `${estimatedLeads} leads`, `${activationRelationships} people`],
                       ["Relationships from budget", `${expectedRelationships}`, `${activationRelationships}`],
                     ].map(([label, paid, activation], i) => (
                       <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", borderBottom: i < 3 ? "1px solid rgba(180,120,20,0.1)" : "none" }}>
