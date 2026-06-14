@@ -317,6 +317,21 @@
                 <ResultBox label="Your Estimated CPE" value={`$${trueCPE.toFixed(2)}`} sublabel="Total cost including media, external production, and internal team time" />
                 <ResultBox label="Your estimated cost per lead (CPL)" value={`$${paidCPR.toFixed(0)}`} sublabel={`${industry} average. Source: Flyweel B2B Benchmark Index 2025. This is the number you're comparing against activation cost.`} highlight={true} />
 
+                <div style={{ padding: "16px 20px", background: "rgba(180,120,20,0.03)", border: "1px solid rgba(180,120,20,0.15)", marginBottom: "20px" }}>
+                  <div style={{ fontSize: "12px", lineHeight: "1.7", color: "rgba(245,240,232,0.55)" }}>
+                    Your CPE measures what you're already spending to reach people. Your industry's CPL is what the market typically pays to generate a lead — these are two different measurements, not one derived from the other.
+                  </div>
+                  <div style={{ marginTop: "10px", fontSize: "13px", color: "#f5f0e8" }}>
+                    Your CPE of <strong style={{ color: "#b8860b" }}>${trueCPE.toFixed(2)}</strong> is{" "}
+                    {trueCPE > paidCPR * 1.1
+                      ? <span style={{ color: "#f87171" }}>higher than</span>
+                      : trueCPE < paidCPR * 0.9
+                        ? <span style={{ color: "#4ade80" }}>lower than</span>
+                        : <span style={{ color: "#fbbf24" }}>about the same as</span>}
+                    {" "}the {industry} average CPL of <strong style={{ color: "#b8860b" }}>${paidCPR.toFixed(0)}</strong>.
+                  </div>
+                </div>
+
                 {(() => {
                   const dinnerCost = 60;
                   const dinnerRatio = paidCPR / dinnerCost;
